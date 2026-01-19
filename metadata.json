@@ -1,0 +1,8 @@
+{
+  "name": "PowerNet",
+  "description": "A unified electricity and WiFi complaint and billing management system featuring real-time tracking, usage calculation, and AI-powered support.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}
