@@ -27,7 +27,8 @@ export const translations = {
     taluk_mgmt: "Taluk Office Control",
     maint_alerts: "Service Interruption Alerts",
     raise_complaint: "Report Issue",
-    track_complaints: "Track Complaints"
+    track_complaints: "Track Complaints",
+    ai_assistant: "AI Assistant"
   },
   kn: {
     dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
@@ -57,7 +58,8 @@ export const translations = {
     taluk_mgmt: "ತಾಲೂಕು ಕಚೇರಿ ನಿರ್ವಹಣೆ",
     maint_alerts: "ಸೇವೆ ವ್ಯತ್ಯಯದ ಎಚ್ಚರಿಕೆಗಳು",
     raise_complaint: "ವರದಿ ಮಾಡಿ",
-    track_complaints: "ದೂರುಗಳನ್ನು ಗಮನಿಸಿ"
+    track_complaints: "ದೂರುಗಳನ್ನು ಗಮನಿಸಿ",
+    ai_assistant: "AI ಸಹಾಯಕ"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -87,6 +89,7 @@ export const translations = {
     taluk_mgmt: "तालुका कार्यालय नियंत्रण",
     maint_alerts: "सेवा व्यवधान अलर्ट",
     raise_complaint: "रिपोर्ट करें",
-    track_complaints: "शिकायतों को ट्रैक करें"
+    track_complaints: "शिकायतों को ट्रैक करें",
+    ai_assistant: "AI सहायक"
   }
 };

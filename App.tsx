@@ -75,7 +75,9 @@ import {
   Timer,
   Archive,
   MonitorCheck,
-  Server
+  Server,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -192,27 +194,27 @@ const LandingView = ({ onGetStarted }: { onGetStarted: () => void }) => (
     </div>
 
     <div className="relative z-10 w-full max-w-7xl px-6 flex flex-col items-center text-center">
-      <div className="relative mb-8 animate-in fade-in zoom-in duration-1000 ease-out">
-        <div className="w-36 h-36 md:w-52 md:h-52 rounded-full bg-blue-600/40 backdrop-blur-3xl border border-blue-400/50 flex items-center justify-center relative animate-float">
-           <div className="z-10 bg-slate-900 p-5 md:p-8 rounded-full shadow-[0_0_50px_rgba(59,130,246,0.5)] border border-white/20">
-              <Zap className="w-16 h-16 md:w-24 md:h-24 text-blue-500 fill-blue-500/30 drop-shadow-[0_0_30px_rgba(59,130,246,1)]" />
+      <div className="relative mb-6 animate-in fade-in zoom-in duration-1000 ease-out">
+        <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-blue-600/40 backdrop-blur-3xl border border-blue-400/50 flex items-center justify-center relative animate-float">
+           <div className="z-10 bg-slate-900 p-4 md:p-6 rounded-full shadow-[0_0_50px_rgba(59,130,246,0.5)] border border-white/20">
+              <Zap className="w-12 h-12 md:w-20 md:h-20 text-blue-500 fill-blue-500/30 drop-shadow-[0_0_30px_rgba(59,130,246,1)]" />
            </div>
         </div>
       </div>
-      <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase mb-6 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+      <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase mb-4 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
         Power<span className="text-blue-500">Net</span>
       </h1>
-      <div className="space-y-4 mb-10 max-w-4xl">
-        <p className="text-white text-xl md:text-3xl leading-tight font-black uppercase italic tracking-tighter drop-shadow-2xl">
+      <div className="space-y-3 mb-8 max-w-3xl">
+        <p className="text-white text-lg md:text-2xl leading-tight font-black uppercase italic tracking-tighter drop-shadow-2xl">
           Unified Electricity & WiFi Management System
         </p>
-        <p className="text-blue-400 text-base md:text-lg font-bold italic tracking-wide uppercase drop-shadow-xl">
+        <p className="text-blue-400 text-sm md:text-base font-bold italic tracking-wide uppercase drop-shadow-xl">
           Empowering Dakshina Kannada with seamless utility tracking and high-speed connectivity.
         </p>
       </div>
-      <button onClick={onGetStarted} className="px-12 py-6 bg-blue-600 text-white font-black uppercase tracking-[0.3em] rounded-[2.5rem] hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(37,99,235,0.6)] flex items-center gap-4 group text-sm">
+      <button onClick={onGetStarted} className="px-10 py-5 bg-blue-600 text-white font-black uppercase tracking-[0.3em] rounded-[2.5rem] hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all shadow-[0_0_60px_rgba(37,99,235,0.7)] flex items-center gap-4 group text-xs">
         Get Started 
-        <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
       </button>
     </div>
   </div>
@@ -340,6 +342,93 @@ const LoginView = ({ onLogin }: { onLogin: (user: LoggedInUser) => void }) => {
               Continue to Portal <ArrowRight className="w-5 h-5" />
             </button>
           </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AIAssistantView = ({ context, onBack }: { context: any, onBack: () => void }) => {
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
+    { role: 'assistant', content: "Hello! I'm your PowerNet Smart Assistant. How can I help you with your electricity or WiFi services today?" }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setLoading(true);
+
+    const response = await getSmartAssistance(userMsg, context);
+    setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    setLoading(false);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto h-[700px] flex flex-col bg-white/90 rounded-[4rem] border border-white shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="p-8 bg-slate-900 text-white flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-600 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter">Smart AI Assistant</h3>
+            <p className="text-[9px] font-black uppercase text-blue-400 tracking-widest">Powered by Gemini Pro</p>
+          </div>
+        </div>
+        <button onClick={onBack} className="p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition-all">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-6 rounded-[2.5rem] shadow-sm ${
+              m.role === 'user' 
+                ? 'bg-blue-600 text-white rounded-tr-none' 
+                : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-100'
+            }`}>
+              <p className="text-[15px] font-bold leading-relaxed">{m.content}</p>
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-slate-50 p-6 rounded-[2.5rem] rounded-tl-none border border-slate-100 flex gap-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="p-8 border-t border-slate-100 bg-white">
+        <div className="relative">
+          <input 
+            type="text" 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Ask about bills, outages, or plan upgrades..."
+            className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl py-5 pl-8 pr-20 font-bold outline-none focus:border-blue-500 transition-all"
+          />
+          <button 
+            onClick={handleSend}
+            disabled={!input.trim() || loading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-4 bg-blue-600 text-white rounded-2xl shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+          >
+            <Send className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>
@@ -1578,7 +1667,7 @@ const App = () => {
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<Bill | null>(null);
   const [selectedBillForDetails, setSelectedBillForDetails] = useState<Bill | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
-  const [userPageMode, setUserPageMode] = useState<'OVERVIEW' | 'RAISE' | 'TRACK' | 'SUCCESS'>('OVERVIEW');
+  const [userPageMode, setUserPageMode] = useState<'OVERVIEW' | 'RAISE' | 'TRACK' | 'SUCCESS' | 'AI'>('OVERVIEW');
   const [lastComplaintId, setLastComplaintId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1679,7 +1768,7 @@ const App = () => {
     
     // Notify User Only
     const newNotif: AppNotification = {
-      id: `N-TECH-${selectedComplaint.id}`,
+      id: `N-TECH-${selectedComplaint.id}-${Date.now()}`,
       title: 'Technician Assigned',
       message: `${techName} (${techPhone}) has been assigned to your ticket #${selectedComplaint.id}.`,
       type: 'INFO',
@@ -1698,7 +1787,7 @@ const App = () => {
     if (status === ComplaintStatus.RESOLVED) {
        // Notify User Only
        const newNotif: AppNotification = {
-         id: `N-RES-${selectedComplaint.id}`,
+         id: `N-RES-${selectedComplaint.id}-${Date.now()}`,
          title: 'Complaint Resolved',
          message: `Your ticket #${selectedComplaint.id} has been resolved. We value your feedback.`,
          type: 'SUCCESS',
@@ -1717,7 +1806,7 @@ const App = () => {
       if (c.id === id) {
         if (status === ComplaintStatus.RESOLVED) {
           const newNotif: AppNotification = {
-            id: `N-QRES-${id}`,
+            id: `N-QRES-${id}-${Date.now()}`,
             title: 'Complaint Resolved',
             message: `Your ticket #${id} has been marked as resolved.`,
             type: 'SUCCESS',
@@ -1738,7 +1827,7 @@ const App = () => {
     setComplaints(prev => prev.map(c => {
       if (c.id === id) {
         const newNotif: AppNotification = {
-          id: `N-QTECH-${id}`,
+          id: `N-QTECH-${id}-${Date.now()}`,
           title: 'Staff Assigned',
           message: `${team} (${techPhone}) is now handling your request #${id}.`,
           type: 'INFO',
@@ -1861,7 +1950,9 @@ const App = () => {
                    </div>
                 </header>
                 <div className="p-16 md:p-24 max-w-[1500px] w-full mx-auto flex-1 space-y-16">
-                  {selectedComplaint ? (
+                  {userPageMode === 'AI' ? (
+                    <AIAssistantView context={{ user, bills, complaints }} onBack={() => setUserPageMode('OVERVIEW')} />
+                  ) : selectedComplaint ? (
                     <ComplaintTrackingView 
                       complaint={selectedComplaint} 
                       lang={lang} 
@@ -1918,6 +2009,20 @@ const App = () => {
                                   <div className={`p-6 bg-slate-50 ${s.color} rounded-[2rem] shadow-sm`}><s.icon className="w-10 h-10" /></div>
                                </div>
                              ))}
+                           </div>
+
+                           <div className="bg-slate-900 p-12 rounded-[4rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8 text-white relative overflow-hidden">
+                              <div className="relative z-10 space-y-2">
+                                <h3 className="text-3xl font-black italic uppercase tracking-tighter">Need Technical Support?</h3>
+                                <p className="text-slate-400 font-bold max-w-md">Our AI Assistant can help you resolve common issues, check your bill breakdown, or suggest power-saving modes.</p>
+                              </div>
+                              <button 
+                                onClick={() => setUserPageMode('AI')}
+                                className="px-12 py-6 bg-blue-600 text-white font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-blue-700 transition-all flex items-center gap-4 relative z-10 shadow-xl"
+                              >
+                                <Sparkles className="w-6 h-6 animate-pulse" /> Talk to AI Assistant
+                              </button>
+                              <Activity className="absolute -bottom-10 -right-10 w-64 h-64 opacity-5 rotate-12" />
                            </div>
 
                            <div className="mt-12 space-y-8">
