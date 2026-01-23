@@ -1,4 +1,3 @@
-
 export enum ServiceType {
   ELECTRICITY = 'ELECTRICITY',
   WIFI = 'WIFI'
@@ -80,4 +79,5 @@ export interface AppNotification {
   userId?: string;
   timestamp: string;
   read: boolean;
+  serviceType?: ServiceType;
 }

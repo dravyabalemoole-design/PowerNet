@@ -77,7 +77,8 @@ import {
   MonitorCheck,
   Server,
   MessageSquare,
-  Send
+  Send,
+  PartyPopper
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -96,7 +97,6 @@ import { MOCK_COMPLAINTS, MOCK_BILLS, WIFI_PLANS, DK_BRANCHES, MOCK_NOTIFICATION
 import { getSmartAssistance } from './services/geminiService';
 import { translations } from './translations';
 
-// --- District Specific Personnel ---
 const TECHNICIANS = [
   "Naveen Rao",
   "Prashanth Shetty",
@@ -451,7 +451,7 @@ const UsageGraph = ({ data, color, label }: { data: any[], color: string, label:
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
-            <linearGradient id={`usageGradient-${label}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`usageGradient-${label}`} x1="0" x2="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
               <stop offset="95%" stopColor={color} stopOpacity={0}/>
             </linearGradient>
@@ -584,7 +584,7 @@ const RecentActivityFeed = ({
       </div>
       <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
         {activities.length === 0 ? (
-          <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px] italic">No activity logs found</div>
+          <div className="py-20 text-center text-slate-300 font-black uppercase italic tracking-widest text-[10px]">No activity logs found</div>
         ) : activities.map(act => (
           <div 
             key={act.id} 
@@ -644,8 +644,9 @@ const PaymentGateway = ({
   walletBalance: number,
   effectiveAmount: number
 }) => {
-  const [step, setStep] = useState<'REVIEW' | 'METHOD' | 'PROCESSING' | 'SUCCESS'>('REVIEW');
+  const [step, setStep] = useState<'REVIEW' | 'METHOD' | 'PIN' | 'PROCESSING' | 'SUCCESS'>('REVIEW');
   const [method, setMethod] = useState<'UPI' | 'CARD' | 'BANK' | 'WALLET'>('UPI');
+  const [pin, setPin] = useState('');
   const cashbackEarned = useMemo(() => Math.floor(effectiveAmount * 0.05), [effectiveAmount]);
   
   const handlePay = () => {
@@ -662,7 +663,7 @@ const PaymentGateway = ({
       <div className="bg-white rounded-[4rem] w-full max-w-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
         {step === 'REVIEW' && (
           <div className="p-12 sm:p-16 space-y-10">
-            <h3 className="text-4xl font-black italic uppercase text-slate-900 tracking-tighter">Review Bill</h3>
+            <h3 className="text-4xl font-black italic uppercase text-slate-900 tracking-tighter">Review {bill.type} Bill</h3>
             <div className="bg-slate-50 p-10 rounded-[3rem] space-y-4">
               <div className="flex justify-between border-b pb-4"><span className="text-[10px] font-black uppercase text-slate-400">Bill ID</span><span className="font-black italic">{bill.id}</span></div>
               <div className="flex justify-between border-b pb-4"><span className="text-[10px] font-black uppercase text-slate-400">Period</span><span className="font-black italic">{bill.period}</span></div>
@@ -703,11 +704,38 @@ const PaymentGateway = ({
               })}
             </div>
             <button 
-              onClick={handlePay} 
+              onClick={() => setStep('PIN')} 
               className="w-full py-7 bg-blue-600 text-white font-black uppercase tracking-[0.3em] rounded-[2.5rem] shadow-xl hover:bg-blue-700 transition-all"
             >
               Pay {formatCurrency(effectiveAmount, lang)} Now
             </button>
+          </div>
+        )}
+        {step === 'PIN' && (
+          <div className="p-12 sm:p-16 space-y-10 text-center">
+            <h3 className="text-4xl font-black italic uppercase text-slate-900 tracking-tighter">Secure Authorization</h3>
+            <p className="text-slate-500 font-bold max-w-md mx-auto">Please enter your 4-digit transaction PIN to confirm the payment of {formatCurrency(effectiveAmount, lang)}.</p>
+            <div className="relative max-w-[240px] mx-auto mt-8">
+              <input 
+                type="password" 
+                maxLength={4}
+                value={pin}
+                autoFocus
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-[2rem] py-6 text-center text-4xl font-black tracking-[1.2em] outline-none focus:border-blue-500 transition-all shadow-inner"
+                placeholder="****"
+              />
+            </div>
+            <div className="flex gap-4">
+               <button onClick={() => setStep('METHOD')} className="flex-1 py-6 bg-slate-100 text-slate-500 font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all">Back</button>
+               <button 
+                 onClick={handlePay} 
+                 disabled={pin.length !== 4}
+                 className="flex-[2] py-6 bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+               >
+                 Confirm Payment
+               </button>
+            </div>
           </div>
         )}
         {step === 'PROCESSING' && (
@@ -984,6 +1012,9 @@ const ComplaintTrackingView = ({
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
 
+  const isSolving = complaint.status === ComplaintStatus.SOLVING || complaint.status === ComplaintStatus.RESOLVED;
+  const isResolved = complaint.status === ComplaintStatus.RESOLVED;
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-right-6 duration-700 max-w-5xl mx-auto">
       <div className="flex items-center gap-6">
@@ -1032,7 +1063,6 @@ const ComplaintTrackingView = ({
 
           {role === 'admin' && (
             <div className="space-y-8 animate-in zoom-in-95">
-              {/* Status Update Control */}
               <div className="bg-white/90 p-12 rounded-[4rem] border border-white shadow-xl space-y-8">
                 <h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">Progress Management</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1044,8 +1074,13 @@ const ComplaintTrackingView = ({
                      <button 
                        key={item.status} 
                        onClick={() => onUpdateStatus?.(item.status)}
-                       className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${complaint.status === item.status ? `border-slate-900 ${item.bg}` : 'border-slate-100 hover:border-slate-200 opacity-60'}`}
+                       className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 relative overflow-hidden ${complaint.status === item.status ? `border-slate-900 ${item.bg}` : 'border-slate-100 hover:border-slate-200 opacity-60'}`}
                      >
+                       {complaint.status === item.status && (
+                         <div className="absolute top-2 right-2 bg-slate-900 text-white p-1 rounded-full animate-in zoom-in duration-300">
+                           <Check className="w-3 h-3" />
+                         </div>
+                       )}
                        <item.icon className={`w-8 h-8 ${item.color}`} />
                        <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
                      </button>
@@ -1053,7 +1088,6 @@ const ComplaintTrackingView = ({
                 </div>
               </div>
 
-              {/* Technician Assignment */}
               {complaint.status !== ComplaintStatus.RESOLVED && (
                 <div className="bg-slate-900 p-12 rounded-[4rem] text-white space-y-8 shadow-2xl">
                   <h4 className="text-3xl font-black italic uppercase tracking-tighter">Assign Field Support</h4>
@@ -1089,10 +1123,10 @@ const ComplaintTrackingView = ({
         <div className="bg-slate-900 p-12 rounded-[4rem] text-white shadow-2xl relative overflow-hidden h-fit">
           <h4 className="text-2xl font-black italic uppercase tracking-tighter relative z-10">Status Path</h4>
           <div className="mt-10 space-y-10 relative z-10">
-            {[{ label: 'Ticket Created', status: true }, { label: 'Technician Assigned', status: !!complaint.technicianName }, { label: 'Work In Progress', status: complaint.status === ComplaintStatus.SOLVING }, { label: 'Resolved', status: complaint.status === ComplaintStatus.RESOLVED }].map((step, i) => (
+            {[{ label: 'Ticket Created', status: true }, { label: 'Technician Assigned', status: !!complaint.technicianName || isSolving }, { label: 'Work In Progress', status: isSolving }, { label: 'Resolved', status: isResolved }].map((step, i) => (
               <div key={i} className="flex gap-6 items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.status ? 'bg-blue-600' : 'bg-slate-800'}`}>{step.status ? <Check className="w-4 h-4" /> : <Clock className="w-4 h-4" />}</div>
-                <p className={`font-black uppercase text-[10px] tracking-widest ${step.status ? 'text-white' : 'text-slate-600'}`}>{step.label}</p>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-500 ${step.status ? 'bg-blue-600' : 'bg-slate-800'}`}>{step.status ? <Check className="w-4 h-4" /> : <Clock className="w-4 h-4" />}</div>
+                <p className={`font-black uppercase text-[10px] tracking-widest transition-colors duration-500 ${step.status ? 'text-white' : 'text-slate-600'}`}>{step.label}</p>
               </div>
             ))}
           </div>
@@ -1266,7 +1300,7 @@ const SubmissionSuccessView = ({ complaint, onFeedback, onFinish }: { complaint:
                 </div>
             </div>
 
-            <div className="bg-white/90 p-12 rounded-[5rem] border border-white shadow-2xl space-y-12 text-center">
+            <div className="bg-white/90 p-12 rounded-[5rem] border border-white shadow-xl space-y-12 text-center">
                 {!submitted ? (
                     <>
                         <div className="space-y-4">
@@ -1328,7 +1362,10 @@ const SmartBillingSection = ({ onProceed, isGrihaJyothiEnabled, lang }: { onProc
   const [estimate, setEstimate] = useState<{units: number, cost: number} | null>(null);
 
   const handleFetchReading = () => {
-    if (!meterNo) return;
+    if (!meterNo || meterNo.length !== 8) {
+      alert("Please enter a valid 8-digit meter number.");
+      return;
+    }
     setIsReading(true);
     setEstimate(null);
     
@@ -1336,7 +1373,10 @@ const SmartBillingSection = ({ onProceed, isGrihaJyothiEnabled, lang }: { onProc
       const units = Math.floor(50 + Math.random() * 350);
       const rate = 7;
       let cost = units * rate;
-      if (isGrihaJyothiEnabled && units <= 200) cost = 0;
+      if (isGrihaJyothiEnabled) {
+        const billableUnits = Math.max(0, units - 200);
+        cost = billableUnits * rate;
+      }
       setEstimate({ units, cost });
       setIsReading(false);
     }, 2500);
@@ -1383,15 +1423,16 @@ const SmartBillingSection = ({ onProceed, isGrihaJyothiEnabled, lang }: { onProc
             <Tag className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input 
               type="text" 
+              maxLength={8}
               value={meterNo}
-              onChange={(e) => setMeterNo(e.target.value)}
-              placeholder="Enter Meter No (e.g. RR-12345)"
+              onChange={(e) => setMeterNo(e.target.value.replace(/\D/g, ''))}
+              placeholder="Enter 8-digit Meter No"
               className="w-full bg-white border-2 border-slate-200 rounded-2xl py-5 pl-14 pr-6 font-black text-slate-900 outline-none focus:border-blue-500 transition-all uppercase tracking-wider"
             />
           </div>
           <button 
             onClick={handleFetchReading}
-            disabled={!meterNo || isReading}
+            disabled={!meterNo || isReading || meterNo.length !== 8}
             className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-600 disabled:opacity-50 transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-900/10"
           >
             {isReading ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
@@ -1407,18 +1448,41 @@ const SmartBillingSection = ({ onProceed, isGrihaJyothiEnabled, lang }: { onProc
             <h5 className="text-6xl font-black italic text-blue-600 tracking-tighter">{estimate.units} <span className="text-xl font-bold uppercase">Units</span></h5>
             <p className="text-slate-400 text-xs font-bold uppercase italic">Direct Meter Data Readout</p>
           </div>
-          <div className="bg-slate-900 p-10 rounded-[3rem] text-white flex flex-col items-center text-center space-y-6">
+          <div className="bg-slate-900 p-10 rounded-[3rem] text-white flex flex-col items-center justify-center text-center space-y-6">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">Estimated Invoice</p>
               <h5 className="text-6xl font-black italic text-blue-400 tracking-tighter">{formatCurrency(estimate.cost, lang)}</h5>
-              {estimate.cost === 0 && <span className="text-[9px] font-black bg-blue-600 px-3 py-1 rounded-full uppercase">Jyothi Waiver</span>}
+              {isGrihaJyothiEnabled && estimate.units > 0 && (
+                <span className="text-[9px] font-black bg-blue-600 px-3 py-1 rounded-full uppercase">
+                  Griha Jyothi: Subtracted 200 free units
+                </span>
+              )}
             </div>
-            <button 
-              onClick={handlePayEstimate}
-              className="w-full py-5 bg-blue-600 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-2xl"
-            >
-              <CreditCard className="w-5 h-5" /> Proceed to Payment
-            </button>
+            {estimate.cost > 0 ? (
+              <button 
+                onClick={handlePayEstimate}
+                className="w-full py-5 bg-blue-600 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-2xl"
+              >
+                <CreditCard className="w-5 h-5" /> Proceed to Payment
+              </button>
+            ) : (
+              <div className="w-full p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 rounded-[2.5rem] animate-in zoom-in-95 duration-700 shadow-[0_0_50px_rgba(37,99,235,0.4)] border border-white/20 relative overflow-hidden group">
+                 <div className="flex flex-col items-center gap-4 relative z-10">
+                    <div className="p-4 bg-white/20 rounded-full backdrop-blur-md group-hover:scale-110 transition-transform">
+                      <PartyPopper className="w-10 h-10 text-yellow-300 animate-pulse" />
+                    </div>
+                    <div>
+                      <h6 className="text-3xl font-black italic uppercase tracking-tighter text-white drop-shadow-lg">BOOM! Zero Dues!</h6>
+                      <p className="text-[11px] font-black uppercase tracking-[0.1em] text-blue-100 mt-2">Exempt under Griha Jyothi Yojana</p>
+                    </div>
+                    <div className="px-6 py-2 bg-white/10 rounded-full border border-white/10">
+                       <p className="text-[9px] font-bold uppercase text-white tracking-widest">Enjoy your free power benefit! 🎉</p>
+                    </div>
+                 </div>
+                 <Sparkles className="absolute top-0 right-0 w-32 h-32 opacity-20 -rotate-12 translate-x-10 -translate-y-10" />
+                 <Sparkles className="absolute bottom-0 left-0 w-32 h-32 opacity-20 rotate-12 -translate-x-10 translate-y-10" />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1426,10 +1490,15 @@ const SmartBillingSection = ({ onProceed, isGrihaJyothiEnabled, lang }: { onProc
   );
 };
 
-const ServiceCatalog = ({ notifications, userBranch }: { notifications: AppNotification[], userBranch?: string }) => {
+const ServiceCatalog = ({ notifications, userBranch, serviceType }: { notifications: AppNotification[], userBranch?: string, serviceType?: ServiceType }) => {
     const relevantAlerts = useMemo(() => {
-        return notifications.filter(n => (n.type === 'ALERT' || n.type === 'MAINTENANCE') && (!n.targetBranch || n.targetBranch === userBranch));
-    }, [notifications, userBranch]);
+        return notifications.filter(n => {
+            const isAlertOrMaintenance = (n.type === 'ALERT' || n.type === 'MAINTENANCE');
+            const isCorrectBranch = (!n.targetBranch || n.targetBranch === userBranch);
+            const isCorrectService = !serviceType || !n.serviceType || n.serviceType === serviceType;
+            return isAlertOrMaintenance && isCorrectBranch && isCorrectService;
+        });
+    }, [notifications, userBranch, serviceType]);
 
     if (relevantAlerts.length === 0) return null;
 
@@ -1490,8 +1559,8 @@ const WiFiRechargeSection = ({ currentPlan, onRecharge, lang }: { currentPlan: W
       <div className="space-y-8">
         <div className="flex items-center justify-between px-6">
           <div>
-            <h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">Recharge Planning</h4>
-            <p className="text-slate-500 font-bold text-sm">Choose a plan that fits your high-speed connectivity needs.</p>
+            <h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">Available WiFi Plans</h4>
+            <p className="text-slate-500 font-bold text-sm">Upgrade or renew your high-speed connectivity.</p>
           </div>
           <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100">
             <GanttChartSquare className="w-6 h-6 text-blue-600" />
@@ -1500,13 +1569,18 @@ const WiFiRechargeSection = ({ currentPlan, onRecharge, lang }: { currentPlan: W
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {WIFI_PLANS.map(plan => (
-            <div key={plan.id} className={`bg-white/90 p-10 rounded-[3.5rem] border-4 transition-all hover:scale-[1.03] shadow-xl flex flex-col justify-between gap-10 group ${plan.id === currentPlan.id ? 'border-blue-600' : 'border-white'}`}>
+            <div key={plan.id} className={`bg-white/90 p-10 rounded-[3.5rem] border-4 transition-all hover:scale-[1.03] shadow-xl flex flex-col justify-between gap-10 group relative overflow-hidden ${plan.id === currentPlan.id ? 'border-blue-600' : 'border-white'}`}>
+               {plan.id === currentPlan.id && (
+                 <div className="absolute top-0 right-0 p-4 bg-blue-600 text-white rounded-bl-3xl z-10">
+                   <Check className="w-5 h-5" />
+                 </div>
+               )}
                <div className="space-y-6">
                   <div className="flex justify-between items-start">
-                     <div className={`p-5 rounded-2xl ${plan.id === currentPlan.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all'}`}>
+                     <div className={`p-5 rounded-2xl ${plan.id === currentPlan.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all'}`}>
                         <Wifi className="w-8 h-8" />
                      </div>
-                     {plan.id === currentPlan.id && <span className="text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-600 px-3 py-1 rounded-full border border-blue-200">Current Plan</span>}
+                     {plan.id === currentPlan.id && <span className="text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-600 px-3 py-1 rounded-full border border-blue-200">Selected Plan</span>}
                   </div>
                   <div>
                      <h5 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-tight">{plan.name}</h5>
@@ -1527,7 +1601,7 @@ const WiFiRechargeSection = ({ currentPlan, onRecharge, lang }: { currentPlan: W
                     onClick={() => onRecharge(plan)}
                     className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl ${plan.id === currentPlan.id ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                   >
-                    {plan.id === currentPlan.id ? 'Renew Plan' : 'Select Plan'} <ArrowRight className="w-5 h-5" />
+                    {plan.id === currentPlan.id ? 'Renew Current' : 'Upgrade Now'} <ArrowRight className="w-5 h-5" />
                   </button>
                </div>
             </div>
@@ -1543,14 +1617,14 @@ const PowercutAlertModal = ({
   onBroadcast 
 }: { 
   onClose: () => void, 
-  onBroadcast: (branch: string, title: string, message: string) => void 
+  onBroadcast: (branch: string, title: string, message: string, serviceType: ServiceType) => void 
 }) => {
   const [branch, setBranch] = useState('All District');
   const [title, setTitle] = useState('Scheduled Power Interruption');
   const [message, setMessage] = useState('Emergency maintenance work will be carried out between 10:00 AM and 04:00 PM.');
 
   const handleSend = () => {
-    onBroadcast(branch === 'All District' ? '' : branch, title, message);
+    onBroadcast(branch === 'All District' ? '' : branch, title, message, ServiceType.ELECTRICITY);
     onClose();
   };
 
@@ -1638,10 +1712,8 @@ const App = () => {
   const [activeWiFiPlan, setActiveWiFiPlan] = useState<WiFiPlan>(WIFI_PLANS[0]);
   const [showPowercutModal, setShowPowercutModal] = useState(false);
 
-  // Power & WiFi Outage Form State
   const [outageArea, setOutageArea] = useState('');
   const [restoreTime, setRestoreTime] = useState('06:00 PM');
-  
   const [wifiAnnounceArea, setWifiAnnounceArea] = useState('');
   const [wifiAnnounceIssue, setWifiAnnounceIssue] = useState('General Maintenance');
 
@@ -1690,39 +1762,57 @@ const App = () => {
       if (!user) return 0;
       return notifications.filter(n => {
           if (n.read) return false;
-          // Hide User-specific notifications from admin and vice versa
-          if (user.role === 'admin' && n.userId) return false;
-          if (user.role === 'user' && n.userId && n.userId !== user.name) return false;
           
-          if (n.id.startsWith('BR-') && user.branch === 'Central Head Office') return false;
-          if (user.role === 'admin') return !n.targetBranch || n.targetBranch === user.branch || user.branch === 'Central Head Office';
-          return !n.targetBranch || n.targetBranch === user.branch;
+          const isAdminAlert = n.id.startsWith('N-A-') || n.id.startsWith('N-AP-') || n.id.startsWith('BR-');
+          
+          if (user.role === 'admin') {
+            if (!isAdminAlert) return false;
+            if (user.branch === 'Central Head Office') return true;
+            return !n.targetBranch || n.targetBranch === user.branch;
+          } else {
+            if (n.id.startsWith('N-A-') || n.id.startsWith('N-AP-')) return false;
+            if (n.userId && n.userId !== user.name) return false;
+            return !n.targetBranch || n.targetBranch === user.branch;
+          }
       }).length;
   }, [notifications, user]);
 
   const t = (key: string) => (translations[lang] as any)[key] || key;
 
   const getFinalAmount = (bill: Bill) => {
-    if (isGrihaJyothiEnabled && bill.type === ServiceType.ELECTRICITY && bill.unitsConsumed !== undefined && bill.unitsConsumed <= 200) return 0;
+    if (isGrihaJyothiEnabled && bill.type === ServiceType.ELECTRICITY && bill.unitsConsumed !== undefined) {
+      const billableUnits = Math.max(0, bill.unitsConsumed - 200);
+      const rate = 7;
+      return billableUnits * rate;
+    }
     return bill.amount;
   };
 
   const handleNotificationClick = (notification?: AppNotification) => {
     if (notification) {
+        if (notification.id.startsWith('N-RES-') || notification.id.startsWith('N-QRES-')) {
+          const parts = notification.id.split('-');
+          const ticketId = parts.slice(2, -1).join('-');
+          const complaint = complaints.find(c => c.id === ticketId);
+          if (complaint) {
+            setSelectedComplaint(complaint);
+            setActiveTab('complaints');
+            setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+            return;
+          }
+        }
         setSelectedNotification(notification);
         setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
     } else {
         setActiveTab('notifications');
         setNotifications(prev => prev.map(n => {
-            if (user?.role === 'admin' && n.userId) return n;
-            if (user?.role === 'user' && n.userId && n.userId !== user.name) return n;
-
-            if (n.id.startsWith('BR-') && user?.branch === 'Central Head Office') return n;
+            const isAdminAlert = n.id.startsWith('N-A-') || n.id.startsWith('N-AP-') || n.id.startsWith('BR-');
             if (user?.role === 'admin') {
-                if (!n.targetBranch || n.targetBranch === user.branch || user.branch === 'Central Head Office') return { ...n, read: true };
+                if (!isAdminAlert) return n;
+                if (user.branch === 'Central Head Office' || !n.targetBranch || n.targetBranch === user.branch) return { ...n, read: true };
             } else {
-                if (!n.targetBranch || n.targetBranch === user?.branch) return { ...n, read: true };
-                if (n.userId && n.userId === user?.name) return { ...n, read: true };
+                if (n.id.startsWith('N-A-') || n.id.startsWith('N-AP-')) return n;
+                if (!n.targetBranch || n.targetBranch === user?.branch || n.userId === user?.name) return { ...n, read: true };
             }
             return n;
         }));
@@ -1738,6 +1828,61 @@ const App = () => {
         setSelectedBillForPayment(item);
       } else {
         setSelectedBillForDetails(item);
+      }
+    }
+  };
+
+  const handleSearchNavigation = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const query = searchTerm.toLowerCase().trim();
+      if (!query) return;
+
+      if (query.includes('electricity') || query.includes('power') || query.includes('light')) {
+        setActiveTab('electricity');
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+        setUserPageMode('OVERVIEW');
+      } else if (query.includes('wifi') || query.includes('internet') || query.includes('net')) {
+        setActiveTab('wifi');
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+        setUserPageMode('OVERVIEW');
+      } else if (query.includes('bill') || query.includes('payment') || query.includes('wallet') || query.includes('invoice')) {
+        setActiveTab(user?.role === 'user' ? 'billing' : 'dashboard');
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+        setUserPageMode('OVERVIEW');
+      } else if (query.includes('profile') || query.includes('account') || query.includes('user') || query.includes('me')) {
+        setActiveTab('profile');
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+        setUserPageMode('OVERVIEW');
+      } else if (query.includes('alert') || query.includes('notification')) {
+        setActiveTab('notifications');
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+        setUserPageMode('OVERVIEW');
+      } else if (query.includes('complaint') || query.includes('ticket') || query.includes('issue')) {
+        if (user?.role === 'admin') {
+          setActiveTab('complaints');
+        } else {
+          setActiveTab('electricity');
+          setUserPageMode('TRACK');
+        }
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+      } else if (query.includes('dashboard') || query.includes('home')) {
+        setActiveTab('dashboard');
+        setSelectedComplaint(null);
+        setSelectedBillForDetails(null);
+        setSelectedNotification(null);
+        setUserPageMode('OVERVIEW');
       }
     }
   };
@@ -1765,14 +1910,12 @@ const App = () => {
     if (!selectedComplaint) return;
     const techPhone = `+91 ${Math.floor(Math.random() * 90000 + 10000)} ${Math.floor(Math.random() * 90000 + 10000)}`;
     setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? { ...c, technicianName: techName, technicianPhone: techPhone, status: ComplaintStatus.SOLVING, updatedAt: new Date().toISOString() } : c));
-    
-    // Notify User Only
     const newNotif: AppNotification = {
       id: `N-TECH-${selectedComplaint.id}-${Date.now()}`,
       title: 'Technician Assigned',
       message: `${techName} (${techPhone}) has been assigned to your ticket #${selectedComplaint.id}.`,
       type: 'INFO',
-      userId: selectedComplaint.userName, // Target the specific user
+      userId: selectedComplaint.userName,
       timestamp: new Date().toISOString(),
       read: false
     };
@@ -1783,9 +1926,7 @@ const App = () => {
   const handleUpdateStatus = (status: ComplaintStatus) => {
     if (!selectedComplaint) return;
     setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? { ...c, status, updatedAt: new Date().toISOString() } : c));
-    
     if (status === ComplaintStatus.RESOLVED) {
-       // Notify User Only
        const newNotif: AppNotification = {
          id: `N-RES-${selectedComplaint.id}-${Date.now()}`,
          title: 'Complaint Resolved',
@@ -1797,7 +1938,6 @@ const App = () => {
        };
        setNotifications(prev => [newNotif, ...prev]);
     }
-    
     setSelectedComplaint(prev => prev ? { ...prev, status } : null);
   };
 
@@ -1847,15 +1987,36 @@ const App = () => {
     const newComplaint: Complaint = { ...data, id: newId, userId: user?.name || 'anonymous', userName: user?.name || 'anonymous', status: ComplaintStatus.PENDING, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Complaint;
     setComplaints(prev => [newComplaint, ...prev]);
     setLastComplaintId(newId);
-    const userNotif: AppNotification = { id: `N-U-${newId}`, title: `Issue Reported: ${newId}`, message: `Successfully submitted. Ticket ID: ${newId}.`, type: 'SUCCESS', userId: user?.name, timestamp: new Date().toISOString(), read: false };
-    const adminNotif: AppNotification = { id: `N-A-${newId}`, title: `New Incident: ${newId}`, message: `${user?.name} reported ${data.category}.`, type: 'ALERT', targetBranch: data.branch, timestamp: new Date().toISOString(), read: false };
+    
+    const userNotif: AppNotification = { 
+        id: `N-U-${newId}`, 
+        title: `Complaint Filed Successfully`, 
+        message: `Your complaint for ${data.category} has been filed. Ticket ID: ${newId}. Status: PENDING.`, 
+        type: 'SUCCESS', 
+        userId: user?.name, 
+        timestamp: new Date().toISOString(), 
+        read: false,
+        serviceType: data.type
+    };
+    
+    const adminNotif: AppNotification = { 
+        id: `N-A-${newId}`, 
+        title: `New Incident: ${newId}`, 
+        message: `${user?.name} reported ${data.category} in ${data.location}.`, 
+        type: 'ALERT', 
+        targetBranch: data.branch, 
+        timestamp: new Date().toISOString(), 
+        read: false,
+        serviceType: data.type
+    };
+    
     setNotifications(prev => [adminNotif, userNotif, ...prev]);
     setUserPageMode('SUCCESS');
   };
 
-  const handleBroadcastAlert = (targetBranch: string, title: string, message: string) => {
+  const handleBroadcastAlert = (targetBranch: string, title: string, message: string, serviceType: ServiceType) => {
     const newId = `BR-${Math.floor(10000 + Math.random() * 90000)}`;
-    setNotifications(prev => [{ id: newId, title, message, type: 'ALERT', targetBranch: targetBranch || undefined, timestamp: new Date().toISOString(), read: false }, ...prev]);
+    setNotifications(prev => [{ id: newId, title, message, type: 'ALERT', targetBranch: targetBranch || undefined, serviceType, timestamp: new Date().toISOString(), read: false }, ...prev]);
   };
 
   const handlePaymentSuccess = (billId: string, cashback: number, method: string) => {
@@ -1863,12 +2024,35 @@ const App = () => {
     const finalAmt = billToPay ? getFinalAmount(billToPay) : (selectedBillForPayment?.amount || 0);
     setBills(prev => prev.map(b => b.id === billId ? { ...b, status: 'PAID', paymentMethod: method, paidAt: new Date().toISOString() } : b));
     setWalletBalance(prev => prev + cashback - (method === 'WALLET' ? finalAmt : 0));
+    
+    const userPaymentNotif: AppNotification = { 
+      id: `N-P-${billId}-${Date.now()}`, 
+      title: `Payment Successful`, 
+      message: `Bill #${billId} cleared. You earned ₹${cashback} cashback!`, 
+      type: 'SUCCESS', 
+      userId: user?.name, 
+      timestamp: new Date().toISOString(), 
+      read: false,
+      serviceType: billToPay?.type
+    };
+
+    const adminPaymentAlert: AppNotification = {
+      id: `N-AP-${billId}-${Date.now()}`,
+      title: `Consumer Payment Received`,
+      message: `${user?.name || 'Consumer'} paid ${formatCurrency(finalAmt, lang)} for period ${billToPay?.period || 'N/A'}. Bill ID: ${billId}.`,
+      type: 'SUCCESS',
+      targetBranch: billToPay?.branch || user?.branch,
+      timestamp: new Date().toISOString(), 
+      read: false,
+      serviceType: billToPay?.type
+    };
+
     if (selectedBillForPayment?.id.startsWith('WREC-')) {
        const planId = selectedBillForPayment.id.split('-')[1];
        const plan = WIFI_PLANS.find(p => p.id === planId);
        if (plan) setActiveWiFiPlan(plan);
     }
-    setNotifications(prev => [{ id: `N-P-${billId}`, title: `Payment Successful`, message: `Bill #${billId} cleared.`, type: 'SUCCESS', userId: user?.name, timestamp: new Date().toISOString(), read: false }, ...prev]);
+    setNotifications(prev => [adminPaymentAlert, userPaymentNotif, ...prev]);
   };
 
   const filteredComplaints = useMemo(() => {
@@ -1883,14 +2067,17 @@ const App = () => {
   const filteredNotifications = useMemo(() => {
       if (!user) return [];
       return notifications.filter(n => {
-          // Hide user-targeted notifications from admin
-          if (user.role === 'admin' && n.userId) return false;
-          // Hide other users' notifications from user
-          if (user.role === 'user' && n.userId && n.userId !== user.name) return false;
-
-          if (n.id.startsWith('BR-') && user.branch === 'Central Head Office') return false;
-          if (user.role === 'admin') return !n.targetBranch || n.targetBranch === user.branch || user.branch === 'Central Head Office';
-          return !n.targetBranch || n.targetBranch === user.branch || n.userId === user.name;
+          const isAdminAlert = n.id.startsWith('N-A-') || n.id.startsWith('N-AP-') || n.id.startsWith('BR-');
+          
+          if (user.role === 'admin') {
+            if (!isAdminAlert) return false;
+            if (user.branch === 'Central Head Office') return true;
+            return !n.targetBranch || n.targetBranch === user.branch;
+          } else {
+            if (n.id.startsWith('N-A-') || n.id.startsWith('N-AP-')) return false;
+            if (n.userId && n.userId !== user.name) return false;
+            return !n.targetBranch || n.targetBranch === user.branch;
+          }
       });
   }, [notifications, user]);
 
@@ -1944,7 +2131,20 @@ const App = () => {
                 <header className="sticky top-0 bg-white/70 backdrop-blur-2xl border-b px-12 py-8 flex items-center justify-between z-50 shadow-sm">
                    <div className="flex items-center gap-8">{(activeTab !== 'dashboard' && !selectedComplaint && !selectedBillForDetails && !selectedNotification) && <StandardBackArrow onClick={() => {setActiveTab('dashboard'); setUserPageMode('OVERVIEW');}} />}<h2 className="text-3xl font-black italic tracking-tighter uppercase text-slate-900">{t(activeTab)}</h2></div>
                    <div className="flex items-center gap-8">
-                      <div className="relative group hidden sm:block"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} type="text" className="bg-white border-2 border-slate-100 rounded-2xl py-3 pl-12 pr-16 font-bold outline-none focus:border-blue-500 transition-all" placeholder="Search Portal..." /><button onClick={startVoiceSearch} className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full ${isListening ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}>{isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</button></div>
+                      <div className="relative group hidden sm:block">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          value={searchTerm} 
+                          onChange={(e) => setSearchTerm(e.target.value)} 
+                          onKeyDown={handleSearchNavigation}
+                          type="text" 
+                          className="bg-white border-2 border-slate-100 rounded-2xl py-3 pl-12 pr-16 font-bold outline-none focus:border-blue-500 transition-all" 
+                          placeholder="Search Portal..." 
+                        />
+                        <button onClick={startVoiceSearch} className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full ${isListening ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}>
+                          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        </button>
+                      </div>
                       <StandardSwitch checked={isDark} onChange={() => setIsDark(!isDark)} />
                       <div className="w-14 h-14 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-blue-500 font-black text-2xl shadow-2xl border-4 border-white">{user?.name[0]}</div>
                    </div>
@@ -1967,7 +2167,7 @@ const App = () => {
                       {selectedNotification ? <NotificationDetailsView notification={selectedNotification} onBack={() => setSelectedNotification(null)} /> : <>
                         <h3 className="text-4xl font-black italic uppercase tracking-tighter mb-12">Portal Notifications</h3>
                         <div className="grid gap-6">
-                          {filteredNotifications.length === 0 ? <div className="py-24 text-center border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-300 font-black uppercase italic tracking-widest">No notifications for your area</div> : filteredNotifications.map(n => (
+                          {filteredNotifications.length === 0 ? <div className="py-24 text-center border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-300 font-black uppercase italic tracking-widest text-[10px]">No notifications for your area</div> : filteredNotifications.map(n => (
                             <div key={n.id} onClick={() => handleNotificationClick(n)} className={`bg-white/90 p-10 rounded-[4rem] border border-white shadow-xl flex items-center gap-10 hover:translate-x-2 transition-transform cursor-pointer group ${!n.read ? 'border-l-8 border-l-blue-600' : ''}`}>
                               <div className={`p-8 rounded-[2rem] ${n.type === 'MAINTENANCE' ? 'bg-orange-100 text-orange-600' : n.type === 'ALERT' ? 'bg-red-100 text-red-600' : n.type === 'SUCCESS' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{n.type === 'MAINTENANCE' ? <Hammer className="w-8 h-8" /> : n.type === 'ALERT' ? <AlertCircle className="w-8 h-8" /> : n.type === 'SUCCESS' ? <Trophy className="w-8 h-8" /> : <Bell className="w-8 h-8" />}</div>
                               <div className="flex-1">
@@ -2075,18 +2275,27 @@ const App = () => {
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="bg-white/90 p-8 rounded-[3.5rem] border border-slate-100 shadow-xl flex items-center gap-8">
-                                    <div className="p-6 bg-blue-50 text-blue-600 rounded-[2rem]">
-                                      <Calendar className="w-10 h-10" />
+                                  <div 
+                                    className="bg-white/90 p-8 rounded-[3.5rem] border-2 border-blue-50 shadow-xl flex items-center gap-8 group hover:scale-[1.02] transition-all cursor-pointer"
+                                    onClick={() => setActiveTab('wifi')}
+                                  >
+                                    <div className="p-6 bg-blue-50 text-blue-600 rounded-[2rem] group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                      <Wifi className="w-10 h-10" />
                                     </div>
-                                    <div>
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h5 className="text-xl font-black italic uppercase text-slate-900 tracking-tight">WiFi Plan Active</h5>
-                                        <span className="text-[9px] font-black uppercase text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Secure</span>
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h5 className="text-xl font-black italic uppercase text-slate-900 tracking-tight">{activeWiFiPlan.name}</h5>
+                                        <span className="text-[9px] font-black uppercase text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">Active</span>
                                       </div>
-                                      <p className="text-slate-500 font-bold text-xs uppercase tracking-wider">Next Recharge Cycle: Nov 30, 2023</p>
-                                      <div className="mt-3 w-40 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                         <div className="h-full bg-blue-500 w-[70%]"></div>
+                                      <p className="text-slate-500 font-bold text-xs uppercase tracking-wider">{activeWiFiPlan.speed} • Unlimited Data</p>
+                                      <div className="mt-4 space-y-2">
+                                         <div className="flex justify-between items-center text-[9px] font-black uppercase text-slate-400">
+                                            <span>Usage: 42.8 GB</span>
+                                            <span>Cycle: 22 Days Left</span>
+                                         </div>
+                                         <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-blue-500 w-[70%]" />
+                                         </div>
                                       </div>
                                     </div>
                                   </div>
@@ -2113,7 +2322,6 @@ const App = () => {
                   ) : activeTab === 'electricity' ? (
                     user?.role === 'admin' ? (
                       <div className="space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        {/* Summary Section */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                            <div className="bg-white/90 p-10 rounded-[3.5rem] border border-white shadow-xl flex items-center gap-8">
                               <div className="p-6 bg-orange-50 text-orange-600 rounded-[2rem] shadow-sm"><ActivitySquare className="w-10 h-10" /></div>
@@ -2133,7 +2341,6 @@ const App = () => {
                            </div>
                         </div>
 
-                        {/* Complaint Management Section */}
                         <div className="bg-white/90 p-12 rounded-[4rem] border border-white shadow-xl space-y-10">
                           <div className="flex items-center justify-between">
                             <div>
@@ -2165,7 +2372,6 @@ const App = () => {
                                          {c.technicianName && <p className="text-[10px] font-black uppercase text-blue-600 mt-2 flex items-center gap-2"><Hammer className="w-3 h-3" /> Assigned to {c.technicianName}</p>}
                                       </div>
                                    </div>
-                                   
                                    <div className="flex flex-wrap items-center gap-4">
                                       <div className="bg-white p-2 rounded-full border border-slate-100 flex gap-2">
                                          <button onClick={() => handleQuickAssign(c.id, 'Team A')} className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${c.technicianName === 'Team A' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>Team A</button>
@@ -2183,7 +2389,6 @@ const App = () => {
                           </div>
                         </div>
 
-                        {/* Power Outage Announcement Section */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                            <div className="bg-slate-900 p-12 rounded-[4rem] text-white space-y-8 shadow-2xl relative overflow-hidden">
                               <div className="relative z-10">
@@ -2218,7 +2423,7 @@ const App = () => {
                                     </div>
                                  </div>
                                  <button 
-                                    onClick={() => handleBroadcastAlert(user?.branch || 'Local', 'Unscheduled Power Outage', `Power failure reported in ${outageArea}. Expected restoration by ${restoreTime}. Teams are working on it.`)}
+                                    onClick={() => handleBroadcastAlert(user?.branch || 'Local', 'Unscheduled Power Outage', `Power failure reported in ${outageArea}. Expected restoration by ${restoreTime}. Teams are working on it.`, ServiceType.ELECTRICITY)}
                                     className="w-full py-6 bg-blue-600 text-white font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-xl shadow-blue-900/20"
                                  >
                                     <Megaphone className="w-5 h-5" /> Notify All Branch Users
@@ -2250,7 +2455,6 @@ const App = () => {
                            </div>
                         </div>
 
-                        {/* Resolved History Log */}
                         <div className="bg-white/90 p-12 rounded-[4rem] border border-white shadow-xl space-y-10">
                            <div className="flex items-center justify-between px-4">
                               <h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">Resolved Incident History</h4>
@@ -2291,9 +2495,9 @@ const App = () => {
                                 <button onClick={() => setUserPageMode('TRACK')} className={`p-12 rounded-[4rem] flex flex-col items-center gap-6 border-4 transition-all group ${userPageMode === 'TRACK' ? 'bg-blue-600 border-blue-400 text-white shadow-2xl' : 'bg-white border-white text-slate-900 shadow-xl hover:border-slate-100'}`}><div className={`p-6 rounded-[2rem] ${userPageMode === 'TRACK' ? 'bg-white/20' : 'bg-slate-100'} transition-all`}><History className="w-12 h-12" /></div><div className="text-center"><h5 className="text-2xl font-black italic uppercase tracking-tighter">{t('track_complaints')}</h5><p className={`text-xs font-bold mt-2 ${userPageMode === 'TRACK' ? 'text-white/70' : 'text-slate-400'}`}>Check tickets</p></div></button>
                             </div>
                             {userPageMode === 'OVERVIEW' && <>
-                              <ServiceCatalog notifications={notifications} userBranch={user?.branch} />
+                              <ServiceCatalog notifications={notifications} userBranch={user?.branch} serviceType={ServiceType.ELECTRICITY} />
                               <SmartBillingSection lang={lang} isGrihaJyothiEnabled={isGrihaJyothiEnabled} onProceed={(tempBill) => setSelectedBillForPayment(tempBill)} />
-                              <div className="bg-white/90 p-12 rounded-[4rem] border border-white shadow-xl flex items-center justify-between gap-10"><div className="flex items-center gap-8"><div className="p-6 bg-blue-50 text-blue-600 rounded-[2rem] shadow-sm"><Lightbulb className="w-12 h-12" /></div><div><h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">Griha Jyothi Yojana</h4><p className="text-slate-500 font-bold text-sm max-w-md">Benefit up to 200 units.</p></div></div><div className="flex flex-col items-center gap-3"><span className="text-[10px] font-black uppercase tracking-widest">{isGrihaJyothiEnabled ? 'Active' : 'Enroll'}</span><StandardSwitch checked={isGrihaJyothiEnabled} onChange={() => setIsGrihaJyothiEnabled(!isGrihaJyothiEnabled)} /></div></div>
+                              <div className="bg-white/90 p-12 rounded-[4rem] border border-white shadow-xl flex items-center justify-between gap-10"><div className="flex items-center gap-8"><div className="p-6 bg-blue-50 text-blue-600 rounded-[2rem] shadow-sm"><Lightbulb className="w-12 h-12" /></div><div><h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">Griha Jyothi Yojana</h4><p className="text-slate-500 font-bold text-sm max-w-md">Benefit up to 200 units free per month.</p></div></div><div className="flex flex-col items-center gap-3"><span className="text-[10px] font-black uppercase tracking-widest">{isGrihaJyothiEnabled ? 'Active' : 'Enroll'}</span><StandardSwitch checked={isGrihaJyothiEnabled} onChange={() => setIsGrihaJyothiEnabled(!isGrihaJyothiEnabled)} /></div></div>
                             </>}
                             {userPageMode === 'TRACK' && <div className="bg-white/90 p-16 rounded-[4.5rem] border border-white shadow-xl space-y-12"><h4 className="text-4xl font-black italic uppercase tracking-tighter">Active Tickets</h4><div className="space-y-6">{filteredComplaints.filter(c => c.type === ServiceType.ELECTRICITY).map(c => <div key={c.id} onClick={() => setSelectedComplaint(c)} className="p-10 border border-slate-100 rounded-[3rem] flex items-center justify-between hover:bg-slate-50 cursor-pointer shadow-sm group"><div className="flex items-center gap-10"><div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center ${c.status === ComplaintStatus.RESOLVED ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{c.status === ComplaintStatus.RESOLVED ? <Check className="w-8 h-8" /> : <Clock className="w-8 h-8" />}</div><div><h5 className="font-black italic text-2xl uppercase tracking-tighter text-slate-900">{c.category}</h5><p className="text-[12px] font-black text-slate-400 uppercase mt-2">{c.id}</p></div></div><ChevronRight className="w-8 h-8 text-slate-200 group-hover:text-blue-600 transition-all" /></div>)}</div></div>}
                         </div>}
@@ -2302,7 +2506,6 @@ const App = () => {
                   ) : activeTab === 'wifi' ? (
                     user?.role === 'admin' ? (
                       <div className="space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        {/* WiFi Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                            <div className="bg-white/90 p-10 rounded-[3.5rem] border border-white shadow-xl flex items-center gap-8 group hover:translate-y-[-8px] transition-all">
                               <div className="p-6 bg-indigo-50 text-indigo-600 rounded-[2rem] shadow-sm"><Signal className="w-10 h-10" /></div>
@@ -2322,7 +2525,6 @@ const App = () => {
                            </div>
                         </div>
 
-                        {/* WiFi Complaint Management */}
                         <div className="bg-white/90 p-12 rounded-[4rem] border border-white shadow-xl space-y-10">
                           <div className="flex items-center justify-between px-4">
                              <div>
@@ -2354,7 +2556,6 @@ const App = () => {
                                          </div>
                                       </div>
                                    </div>
-
                                    <div className="flex flex-wrap items-center gap-4">
                                       <div className="bg-white p-2 rounded-full border border-slate-100 flex gap-2">
                                          <button onClick={() => handleQuickAssign(c.id, 'Team Alpha')} className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${c.technicianName === 'Team Alpha' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>Team Alpha</button>
@@ -2371,7 +2572,6 @@ const App = () => {
                           </div>
                         </div>
 
-                        {/* Network Announcements & History */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                            <div className="bg-indigo-900 p-12 rounded-[4rem] text-white space-y-8 shadow-2xl relative overflow-hidden">
                               <div className="relative z-10">
@@ -2408,7 +2608,7 @@ const App = () => {
                                     </div>
                                  </div>
                                  <button 
-                                    onClick={() => handleBroadcastAlert(user?.branch || 'WiFi Hub', `Network Alert: ${wifiAnnounceIssue}`, `Our teams are addressing a ${wifiAnnounceIssue} in ${wifiAnnounceArea}. Connectivity will be restored shortly.`)}
+                                    onClick={() => handleBroadcastAlert(user?.branch || 'WiFi Hub', `Network Alert: ${wifiAnnounceIssue}`, `Our teams are addressing a ${wifiAnnounceIssue} in ${wifiAnnounceArea}. Connectivity will be restored shortly.`, ServiceType.WIFI)}
                                     className="w-full py-6 bg-white text-indigo-900 font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-indigo-50 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-900/40"
                                  >
                                     <Megaphone className="w-5 h-5" /> Push Area Notification
@@ -2458,7 +2658,7 @@ const App = () => {
                                 <button onClick={() => setUserPageMode('TRACK')} className={`p-12 rounded-[4rem] flex flex-col items-center gap-6 border-4 transition-all group ${userPageMode === 'TRACK' ? 'bg-blue-600 border-blue-400 text-white shadow-2xl' : 'bg-white border-white text-slate-900 shadow-xl hover:border-slate-100'}`}><div className={`p-6 rounded-[2rem] ${userPageMode === 'TRACK' ? 'bg-white/20' : 'bg-slate-100'} transition-all`}><History className="w-12 h-12" /></div><div className="text-center"><h5 className="text-2xl font-black italic uppercase tracking-tighter">{t('track_complaints')}</h5><p className={`text-xs font-bold mt-2 ${userPageMode === 'TRACK' ? 'text-white/70' : 'text-slate-400'}`}>Check tickets</p></div></button>
                             </div>
                             {userPageMode === 'OVERVIEW' && <>
-                              <ServiceCatalog notifications={notifications} userBranch={user?.branch} />
+                              <ServiceCatalog notifications={notifications} userBranch={user?.branch} serviceType={ServiceType.WIFI} />
                               <WiFiRechargeSection lang={lang} currentPlan={activeWiFiPlan} onRecharge={handleWiFiRechargeInitiate} />
                             </>}
                             {userPageMode === 'TRACK' && <div className="bg-white/90 p-16 rounded-[4.5rem] border border-white shadow-xl space-y-12"><h4 className="text-4xl font-black italic uppercase tracking-tighter">Active Tickets</h4><div className="space-y-6">{filteredComplaints.filter(c => c.type === ServiceType.WIFI).map(c => <div key={c.id} onClick={() => setSelectedComplaint(c)} className="p-10 border border-slate-100 rounded-[3rem] flex items-center justify-between hover:bg-slate-50 cursor-pointer shadow-sm group"><div className="flex items-center gap-10"><div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center ${c.status === ComplaintStatus.RESOLVED ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{c.status === ComplaintStatus.RESOLVED ? <Check className="w-8 h-8" /> : <Clock className="w-8 h-8" />}</div><div><h5 className="font-black italic text-2xl uppercase tracking-tighter text-slate-900">{c.category}</h5><p className="text-[12px] font-black text-slate-400 uppercase mt-2">{c.id}</p></div></div><ChevronRight className="w-8 h-8 text-slate-200 group-hover:text-blue-600 transition-all" /></div>)}</div></div>}
@@ -2527,7 +2727,7 @@ const App = () => {
                              </div>
                              <div className="bg-white/80 p-10 rounded-[4rem] border border-white shadow-xl flex flex-col items-center text-center gap-4">
                                 <div className="p-6 bg-green-50 text-green-600 rounded-[2.5rem]"><TrendingUp className="w-12 h-12" /></div>
-                                <div><h6 className="text-5xl font-black italic tracking-tighter">94%</h6><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">SLA Efficiency</p></div>
+                                <div><h6 className="text-5xl font-black italic uppercase text-slate-400 tracking-widest mt-1">SLA Efficiency</p></div>
                              </div>
                           </>
                         ) : (
