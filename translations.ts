@@ -28,7 +28,8 @@ export const translations = {
     maint_alerts: "Service Interruption Alerts",
     raise_complaint: "Report Issue",
     track_complaints: "Track Complaints",
-    ai_assistant: "AI Assistant"
+    ai_assistant: "AI Assistant",
+    incident_log: "Consumer Incident Log"
   },
   kn: {
     dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
@@ -59,7 +60,8 @@ export const translations = {
     maint_alerts: "ಸೇವೆ ವ್ಯತ್ಯಯದ ಎಚ್ಚರಿಕೆಗಳು",
     raise_complaint: "ವರದಿ ಮಾಡಿ",
     track_complaints: "ದೂರುಗಳನ್ನು ಗಮನಿಸಿ",
-    ai_assistant: "AI ಸಹಾಯಕ"
+    ai_assistant: "AI ಸಹಾಯಕ",
+    incident_log: "ಗ್ರಾಹಕ ದೂರುಗಳ ದಾಖಲೆ"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -90,6 +92,7 @@ export const translations = {
     maint_alerts: "सेवा व्यवधान अलर्ट",
     raise_complaint: "रिपोर्ट करें",
     track_complaints: "शिकायतों को ट्रैक करें",
-    ai_assistant: "AI सहायक"
+    ai_assistant: "AI सहायक",
+    incident_log: "उपभोक्ता घटना लॉग"
   }
 };

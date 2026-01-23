@@ -56,6 +56,8 @@ export interface WiFiPlan {
   speed: string;
   dataLimit: string;
   price: number;
+  validity: string;
+  description: string;
 }
 
 export type LoginRole = 'user' | 'admin';

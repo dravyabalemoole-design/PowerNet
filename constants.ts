@@ -69,9 +69,33 @@ export const MOCK_BILLS: Bill[] = [
 ];
 
 export const WIFI_PLANS: WiFiPlan[] = [
-  { id: 'W-01', name: 'Coastal Fiber Basic', speed: '50 Mbps', dataLimit: 'Unlimited', price: 399 },
-  { id: 'W-02', name: 'District Streamer Pro', speed: '200 Mbps', dataLimit: 'Unlimited', price: 649 },
-  { id: 'W-03', name: 'Mangalore Giga Speed', speed: '500 Mbps', dataLimit: 'Unlimited', price: 999 },
+  { 
+    id: 'W-01', 
+    name: 'Coastal Fiber Basic', 
+    speed: '50 Mbps', 
+    dataLimit: 'Unlimited', 
+    price: 399, 
+    validity: '30 Days',
+    description: 'Perfect for light browsing and social media in standard definition.'
+  },
+  { 
+    id: 'W-02', 
+    name: 'District Streamer Pro', 
+    speed: '200 Mbps', 
+    dataLimit: 'Unlimited', 
+    price: 649, 
+    validity: '30 Days',
+    description: 'Optimized for 4K streaming and low-latency online gaming for families.'
+  },
+  { 
+    id: 'W-03', 
+    name: 'Mangalore Giga Speed', 
+    speed: '500 Mbps', 
+    dataLimit: 'Unlimited', 
+    price: 999, 
+    validity: '30 Days',
+    description: 'Extreme performance for high-load home offices and multi-device households.'
+  },
 ];
 
 export const DK_BRANCHES = [
@@ -100,8 +124,10 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
     title: 'Maintenance Alert',
     message: 'Scheduled maintenance in Mangalore City branch on Oct 30, 11 PM.',
     type: 'MAINTENANCE',
+    targetBranch: 'Mangalore City',
     timestamp: '2023-10-27T15:30:00Z',
-    read: false
+    read: false,
+    serviceType: ServiceType.WIFI
   },
   {
     id: 'N-003',
